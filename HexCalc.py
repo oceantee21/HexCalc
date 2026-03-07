@@ -1,5 +1,14 @@
-num1 = input("Введите первое число: ") # присваиваем переменной num1 значение, которое ввел пользователь
-num2 = input("Введите второе число: ") # то же самое с num2
-
-print("Первое число: ", num1) # вывод текста "Первое число: {значение переменной num1}"
-print("Второе число: ", num2) # вывод текста "Второе число: {значение переменной num2}"
+number1 = float(input("Введите первое число: "))
+operation = input("Выберите операцию (+, -, * или /): ")
+number2 = float(input("Введите второе число: "))
+if operation == "+":
+    result = number1 + number2
+elif operation == "-":
+    result = number1 - number2
+elif operation == "*":
+    result = number1 * number2
+elif operation == "/":
+    result = number1 / number2
+else:
+    print("Неверная операция!")
+print("Результат:", result)
