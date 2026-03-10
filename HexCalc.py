@@ -1,97 +1,144 @@
-#!/usr/bin/env python3
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import math
 
-def get_float_from(entry):
-    s = entry.get()
-    if s == "":
-        raise ValueError("Пустое значение")
-    return float(s)
+# Цвета (все кнопки цифр/фона кнопок — один тёмно-синий)
+BG = "#0b1f2e"        # фон окна
+FRAME_BG = "#0e2836"
+BTN_BG = "#1f6b8f"    # основной синий (для всех кнопок по просьбе)
+BTN_OP_BG = "#165a75" # операции чуть темнее
+BTN_EQ_BG = BTN_BG    # равно тот же синий
+FG = "#ffffff"
 
-def calculate(op):
-    try:
-        a = get_float_from(entry_a)
-    except ValueError:
-        messagebox.showerror("Ошибка", "Первое число введено неверно")
-        return
-    try:
-        b = get_float_from(entry_b)
-    except ValueError:
-        messagebox.showerror("Ошибка", "Второе число введено неверно")
-        return
+def insert_text(s):
+    ent = root.focus_get()
+    if isinstance(ent, tk.Entry):
+        i = ent.index(tk.INSERT)
+        ent.insert(i, s)
+    else:
+        expr_entry.insert(tk.INSERT, s)
 
-    try:
-        if op == "+":
-            res = a + b
-        elif op == "-":
-            res = a - b
-        elif op == "*":
-            res = a * b
-        elif op == "/":
-            res = a / b
-        else:
-            messagebox.showerror("Ошибка", "Неверная операция")
-            return
-    except Exception as e:
-        messagebox.showerror("Ошибка выполнения", str(e))
-        return
-
-    result_var.set(str(res))
-
-def on_enter(event):
-    # По Enter выполняем сложение как пример
-    calculate("+")
-
-def backspace_active():
+def backspace():
     w = root.focus_get()
-    if isinstance(w, ttk.Entry) or isinstance(w, tk.Entry):
-        s = w.get()
-        w.delete(0, tk.END)
-        w.insert(0, s[:-1])
+    if isinstance(w, tk.Entry):
+        i = w.index(tk.INSERT)
+        if i > 0:
+            w.delete(i-1)
+    else:
+        i = expr_entry.index(tk.INSERT)
+        if i > 0:
+            expr_entry.delete(i-1)
 
 def clear_all():
-    entry_a.delete(0, tk.END)
-    entry_b.delete(0, tk.END)
+    expr_entry.delete(0, tk.END)
     result_var.set("")
+
+def evaluate():
+    expr = expr_entry.get()
+    if not expr.strip():
+        return
+    try:
+        safe = expr.replace("×", "*").replace("÷", "/").replace("√", "sqrt")
+        def sqrt(x): return math.sqrt(x)
+        allowed = {"sqrt": sqrt, "pi": math.pi, "e": math.e}
+        res = eval(safe, {"__builtins__": {}}, allowed)
+        result_var.set(str(res))
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Неправильное выражение:\n{e}")
+
+def press_key(event):
+    if event.keysym == "Return":
+        evaluate()
+    elif event.keysym == "BackSpace":
+        backspace()
 
 root = tk.Tk()
 root.title("HexCalc — калькулятор")
-root.resizable(False, False)
+root.configure(bg=BG)
+root.minsize(320, 480)
 
-frm = ttk.Frame(root, padding=10)
-frm.grid(row=0, column=0, sticky="NSEW")
+frm = tk.Frame(root, bg=FRAME_BG, padx=8, pady=8)
+frm.pack(fill="both", expand=True, padx=12, pady=12)
 
-ttk.Label(frm, text="Первое число:").grid(row=0, column=0, sticky="W")
-entry_a = ttk.Entry(frm, width=25)
-entry_a.grid(row=0, column=1, pady=4)
-entry_a.focus()
-
-ttk.Label(frm, text="Второе число:").grid(row=1, column=0, sticky="W")
-entry_b = ttk.Entry(frm, width=25)
-entry_b.grid(row=1, column=1, pady=4)
-
-# Кнопки операций
-ops_frame = ttk.Frame(frm)
-ops_frame.grid(row=2, column=0, columnspan=2, pady=(6,4))
-btn_plus = ttk.Button(ops_frame, text="+", width=6, command=lambda: calculate("+"))
-btn_minus = ttk.Button(ops_frame, text="−", width=6, command=lambda: calculate("-"))
-btn_mul = ttk.Button(ops_frame, text="×", width=6, command=lambda: calculate("*"))
-btn_div = ttk.Button(ops_frame, text="÷", width=6, command=lambda: calculate("/"))
-btn_back = ttk.Button(ops_frame, text="⌫", width=6, command=backspace_active)
-btn_clr = ttk.Button(ops_frame, text="CLR", width=6, command=clear_all)
-
-btn_plus.grid(row=0, column=0, padx=2)
-btn_minus.grid(row=0, column=1, padx=2)
-btn_mul.grid(row=0, column=2, padx=2)
-btn_div.grid(row=0, column=3, padx=2)
-btn_back.grid(row=0, column=4, padx=8)
-btn_clr.grid(row=0, column=5, padx=2)
+expr_entry = tk.Entry(frm, font=("Segoe UI", 20), justify="right", bd=0, relief="flat",
+                      insertbackground=FG, bg="#071622", fg=FG)
+expr_entry.grid(row=0, column=0, columnspan=4, sticky="nsew", pady=(0,8), ipady=10)
+expr_entry.focus()
 
 result_var = tk.StringVar()
-ttk.Label(frm, text="Результат:").grid(row=3, column=0, sticky="W")
-ttk.Entry(frm, textvariable=result_var, width=25, state="readonly").grid(row=3, column=1, pady=4)
+result_entry = tk.Entry(frm, textvariable=result_var, font=("Segoe UI", 14),
+                        justify="right", bd=0, relief="flat", state="readonly",
+                        readonlybackground="#071622", fg="#bfe8ff")
+result_entry.grid(row=1, column=0, columnspan=4, sticky="nsew", pady=(0,12), ipady=6)
 
-root.bind("<Return>", on_enter)
-root.bind("<BackSpace>", lambda e: backspace_active())
+# сетка: строки 2..7, колонки 0..3
+for r in range(2, 8):
+    frm.rowconfigure(r, weight=1)
+for c in range(4):
+    frm.columnconfigure(c, weight=1, uniform="col")
+
+btn_style = {"font": ("Segoe UI", 16), "bd": 0, "fg": FG, "relief": "flat", "activeforeground": FG}
+
+def make_btn(text, row, col, colspan=1, bg=BTN_BG, cmd=None):
+    b = tk.Button(frm, text=text, bg=bg, **btn_style, command=(cmd if cmd else lambda t=text: insert_text(t)))
+    b.grid(row=row, column=col, columnspan=colspan, sticky="nsew", padx=4, pady=4)
+    return b
+
+# Первая строка функций
+make_btn("C", 2, 0, bg=BTN_OP_BG, cmd=clear_all)
+make_btn("⌫", 2, 1, bg=BTN_OP_BG, cmd=backspace)
+make_btn("(", 2, 2)
+make_btn(")", 2, 3)
+
+# Цифры 7 8 9
+make_btn("7", 3, 0)
+make_btn("8", 3, 1)
+make_btn("9", 3, 2)
+make_btn("÷", 3, 3, bg=BTN_OP_BG, cmd=lambda: insert_text("÷"))
+
+# Цифры 4 5 6
+make_btn("4", 4, 0)
+make_btn("5", 4, 1)
+make_btn("6", 4, 2)
+make_btn("×", 4, 3, bg=BTN_OP_BG, cmd=lambda: insert_text("×"))
+
+# Цифры 1 2 3
+make_btn("1", 5, 0)
+make_btn("2", 5, 1)
+make_btn("3", 5, 2)
+make_btn("-", 5, 3, bg=BTN_OP_BG, cmd=lambda: insert_text("-"))
+
+# Ноль, точка, плюс, равно/операции внизу
+make_btn("0", 6, 0, colspan=2)  # ноль занимает два столбца (обычно)
+make_btn(".", 6, 2)
+make_btn("+", 6, 3, bg=BTN_OP_BG, cmd=lambda: insert_text("+"))
+
+# Дополнительные функции: корень, x^2, 1/x, +/- и большая кнопка "="
+# Разместим их над цифрами (в первой колонке блоков) или добавим снизу слева — тут добавим в столбец 0..2 верхне-нижне
+make_btn("√", 7, 0, bg=BTN_OP_BG, cmd=lambda: insert_text("√("))
+make_btn("x²", 7, 1, bg=BTN_OP_BG, cmd=lambda: insert_text("**2"))
+make_btn("1/x", 7, 2, bg=BTN_OP_BG, cmd=lambda: insert_text("1/("))
+make_btn("=", 7, 3, bg=BTN_EQ_BG, cmd=evaluate)
+
+# Чтобы "=" была крупной и заметной, растянем её по высоте:
+frm.rowconfigure(7, weight=1)
+
+# Приведение всех кнопок к единой основной синей палитре, операции — чуть темнее
+for w in frm.grid_slaves():
+    if isinstance(w, tk.Button):
+        txt = w.cget("text")
+        if txt in ("÷", "×", "+", "-", "√", "x²", "1/x", "C", "⌫"):
+            w.configure(bg=BTN_OP_BG, activebackground="#134956")
+        else:
+            w.configure(bg=BTN_BG, activebackground="#195f79")
+
+# Стилизация полей
+expr_entry.configure(bg="#071622", fg="#e6f7ff")
+result_entry.configure(readonlybackground="#071622", fg="#bfe8ff")
+
+# Клавиатурные бинды
+root.bind("<Return>", lambda e: evaluate())
+root.bind("<BackSpace>", lambda e: backspace())
+root.bind("<Key>", press_key)
 
 root.mainloop()
